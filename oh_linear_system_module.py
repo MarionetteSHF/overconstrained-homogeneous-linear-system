@@ -4,15 +4,14 @@ import pickle
 
 
 class LinearSystemSolver:
-    def __init__(self, rtol=1e-6, atol=1e-6):
+    def __init__(self):
         """
         Initialize the constraint matrix A and matrices Q, R for the QR decomposition of A.
         """
         self.A = None
         self.Q = None
         self.R = None
-        self.rtol = rtol
-        self.atol = atol
+
     def initialize(self, A):
         """
         Initialize the solver with a fixed constraint matrix A and decompose it.
@@ -51,7 +50,7 @@ class LinearSystemSolver:
         norm_squared = np.sum(residual ** 2)
         return norm_squared
 
-    def check_solution(self, x, b):
+    def check_solution(self, x, b, rtol=1e-6, atol=1e-6):
         """
         Check if the computed solution satisfies the given linear system within the specified tolerances.
         Handle the effect of floating point accuracy
@@ -60,5 +59,5 @@ class LinearSystemSolver:
         residual = Ax - b
         norm_squared = np.sum(residual ** 2)
 
-        return np.isclose(norm_squared, 0, rtol=self.rtol, atol=self.atol)
+        return np.isclose(norm_squared, 0, rtol=rtol, atol=atol)
 
