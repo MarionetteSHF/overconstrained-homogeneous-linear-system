@@ -6,56 +6,62 @@ import pickle
 class LinearSystemSolver:
     def __init__(self):
         """
-        Initialize the constraint matrix A and matrices Q, R for the QR decomposition of A.
+        Initialize the dictionaries for storing matrices Q, R from the QR decomposition of A.
         """
-        self.A = None
-        self.Q = None
-        self.R = None
 
-    def initialize(self, A):
+        self.Q_matrices = {}
+        self.R_matrices = {}
+
+    def initialize(self, A_list):
         """
-        Initialize the solver with a fixed constraint matrix A and decompose it.
+        Initialize the solver by decomposing every matrix and store the Q R matrix.
         """
-        self.A = A
-        self.Q, self.R = la.qr(self.A, mode='economic')
+        for matrix_A in A_list:
+            matrix_A_str = np.array2string(matrix_A)
+            Q, R = la.qr(matrix_A, mode='economic')
+            self.Q_matrices[matrix_A_str] = Q
+            self.R_matrices[matrix_A_str] = R
     def save_state(self, filename):
         """
         Save the state of the initialized linear system to a file.
         """
         with open(filename, 'wb') as file:
-            pickle.dump((self.A, self.Q, self.R), file)
+            pickle.dump((self.Q_matrices, self.R_matrices), file)
 
     def load_state(self, filename):
         """
         Load the saved state of a linear system from a file.
         """
         with open(filename, 'rb') as file:
-            self.A, self.Q, self.R = pickle.load(file)
+            self.Q_matrices, self.R_matrices = pickle.load(file)
 
 
-    def solve(self, b):
+    def solve(self, A, b):
         """
-        Accept the right-hand side b and compute the least-squares optimal x for the given b.
+        Accept the right-hand side b and compute the least-squares optimal x for the given A and b.
         """
-        x = la.lstsq(self.R, np.dot(self.Q.T, b), lapack_driver='gelsy')[0]
+        matrix_A_str = np.array2string(A)
+        Q = self.Q_matrices[matrix_A_str]
+        R = self.R_matrices[matrix_A_str]
+        x = la.lstsq(R, np.dot(Q.T, b), lapack_driver='gelsy')[0]
         return x
 
 
-    def compute_residual_norm(self, x, b):
+    def compute_residual_norm(self, A, x, b):
         """
-        Compute the norm of the residual ||Ax − b||^2.
+        Compute the norm of the residual ||Ax − b||^2 for the given A, x, and b.
         """
-        Ax = np.dot(self.A, x)
+        Ax = np.dot(A, x)
         residual = Ax - b
         norm_squared = np.sum(residual ** 2)
         return norm_squared
 
-    def check_solution(self, x, b, rtol=1e-6, atol=1e-6):
+    def check_solution(self, A, x, b, rtol=1e-6, atol=1e-6):
         """
         Check if the computed solution satisfies the given linear system within the specified tolerances.
-        Handle the effect of floating point accuracy
+        Handle the effect of floating point accuracy.
         """
-        Ax = np.dot(self.A, x)
+        Ax = np.dot(A, x)
         residual = Ax - b
         norm_squared = np.sum(residual ** 2)
 
